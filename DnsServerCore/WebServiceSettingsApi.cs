@@ -224,6 +224,8 @@ namespace DnsServerCore
                 jsonWriter.WriteNumber("quicIdleTimeout", _dnsWebService._dnsServer.QuicIdleTimeout);
                 jsonWriter.WriteNumber("quicMaxInboundStreams", _dnsWebService._dnsServer.QuicMaxInboundStreams);
                 jsonWriter.WriteNumber("listenBacklog", _dnsWebService._dnsServer.ListenBacklog);
+                jsonWriter.WriteNumber("udpSendBufferSizeKB", _dnsWebService._dnsServer.UdpSendBufferSizeKB);
+                jsonWriter.WriteNumber("udpReceiveBufferSizeKB", _dnsWebService._dnsServer.UdpReceiveBufferSizeKB);
                 jsonWriter.WriteNumber("maxConcurrentResolutionsPerCore", _dnsWebService._dnsServer.MaxConcurrentResolutionsPerCore);
 
                 //web service
@@ -875,6 +877,28 @@ namespace DnsServerCore
                             }
 
                             clusterParameters.Add("listenBacklog", listenBacklog.ToString());
+                        }
+
+                        if (request.TryGetQueryOrForm("udpSendBufferSizeKB", int.Parse, out int udpSendBufferSizeKB))
+                        {
+                            if (_dnsWebService._dnsServer.UdpSendBufferSizeKB != udpSendBufferSizeKB)
+                            {
+                                _dnsWebService._dnsServer.UdpSendBufferSizeKB = udpSendBufferSizeKB;
+                                restartDnsService = true;
+                            }
+
+                            clusterParameters.Add("udpSendBufferSizeKB", udpSendBufferSizeKB.ToString());
+                        }
+
+                        if (request.TryGetQueryOrForm("udpReceiveBufferSizeKB", int.Parse, out int udpReceiveBufferSizeKB))
+                        {
+                            if (_dnsWebService._dnsServer.UdpReceiveBufferSizeKB != udpReceiveBufferSizeKB)
+                            {
+                                _dnsWebService._dnsServer.UdpReceiveBufferSizeKB = udpReceiveBufferSizeKB;
+                                restartDnsService = true;
+                            }
+
+                            clusterParameters.Add("udpReceiveBufferSizeKB", udpReceiveBufferSizeKB.ToString());
                         }
 
                         if (request.TryGetQueryOrForm("maxConcurrentResolutionsPerCore", ushort.Parse, out ushort maxConcurrentResolutionsPerCore))
