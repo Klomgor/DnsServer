@@ -400,7 +400,7 @@ namespace DnsServerCore
 
                         response.ContentType = "application/zip";
                         response.ContentLength = configZipStream.Length;
-                        response.Headers.LastModified = DateTime.UtcNow.ToString("R");
+                        response.Headers.LastModified = DateTime.UtcNow.ToString("R", CultureInfo.InvariantCulture);
                         response.Headers.Append("Content-Disposition", "attachment; filename=\"config.zip\"");
 
                         await using (Stream output = response.Body)
