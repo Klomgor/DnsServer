@@ -1046,6 +1046,19 @@ namespace DnsServerCore.Dns.ZoneManagers
                             continue;
                         }
 
+                        //do URL validation
+                        try
+                        {
+                            if (url.StartsWith('!'))
+                                _ = new Uri(url.Substring(1));
+                            else
+                                _ = new Uri(url);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new ArgumentException(ex.Message, nameof(BlockListUrls));
+                        }
+
                         if (!uniqueList.Contains(url))
                             uniqueList.Add(url);
                     }
