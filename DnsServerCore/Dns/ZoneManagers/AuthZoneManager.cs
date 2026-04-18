@@ -2475,6 +2475,40 @@ namespace DnsServerCore.Dns.ZoneManagers
             return false;
         }
 
+        public void DeleteAllRecords(string zoneName)
+        {
+            foreach (AuthZone authZone in _root.GetApexZoneWithSubDomainZones(zoneName))
+            {
+                foreach (DnsResourceRecordType recordType in authZone.Entries.Keys)
+                {
+                    switch (recordType)
+                    {
+                        case DnsResourceRecordType.SOA:
+                            break; //skip SOA record
+
+                        case DnsResourceRecordType.DNSKEY:
+                        case DnsResourceRecordType.RRSIG:
+                        case DnsResourceRecordType.NSEC:
+                        case DnsResourceRecordType.NSEC3PARAM:
+                        case DnsResourceRecordType.NSEC3:
+                            break; //skip DNSSEC records
+
+                        default:
+                            authZone.DeleteRecords(recordType);
+                            break;
+                    }
+                }
+
+                if (authZone is SubDomainZone subDomainZone)
+                {
+                    if (authZone.IsEmpty)
+                        _root.TryRemove(authZone.Name, out SubDomainZone _); //remove empty sub zone
+                    else
+                        subDomainZone.AutoUpdateState();
+                }
+            }
+        }
+
         #endregion
 
         #region zone transfer / import
@@ -3072,7 +3106,7 @@ namespace DnsServerCore.Dns.ZoneManagers
             return condensedRecords;
         }
 
-        internal void ImportRecords(string zoneName, IReadOnlyList<DnsResourceRecord> records, bool overwrite, bool overwriteSoaSerial)
+        internal void ImportRecords(string zoneName, IReadOnlyList<DnsResourceRecord> records, bool overwriteRecords, bool overwriteZone, bool overwriteSoaSerial)
         {
             _ = _root.FindZone(zoneName, out _, out _, out ApexZone apexZone, out _);
             if ((apexZone is null) || !apexZone.Name.Equals(zoneName, StringComparison.OrdinalIgnoreCase))
@@ -3080,6 +3114,14 @@ namespace DnsServerCore.Dns.ZoneManagers
 
             if ((apexZone is not PrimaryZone) && (apexZone is not ForwarderZone))
                 throw new DnsServerException("Zone must be a primary or forwarder type: " + apexZone.ToString());
+
+            if (overwriteZone)
+            {
+                //remove all existing records from the zone
+                DeleteAllRecords(zoneName);
+
+                overwriteRecords = true; //set to true for optimization
+            }
 
             List<DnsResourceRecord> soaRRSet = null;
 
@@ -3105,7 +3147,7 @@ namespace DnsServerCore.Dns.ZoneManagers
                                 break;
 
                             default:
-                                if (overwrite)
+                                if (overwriteRecords)
                                 {
                                     apexZone.SetRecords(rrsetEntry.Key, rrsetEntry.Value);
                                 }
@@ -3135,7 +3177,7 @@ namespace DnsServerCore.Dns.ZoneManagers
                                 break;
 
                             default:
-                                if (overwrite)
+                                if (overwriteRecords)
                                 {
                                     authZone.SetRecords(rrsetEntry.Key, rrsetEntry.Value);
                                 }
