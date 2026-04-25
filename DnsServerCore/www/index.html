@@ -1712,6 +1712,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                         </div>
 
                                                         <div><b>Note!</b> Disable recursion if you wish this server to act only as authoritative name server for the configured zones.</div>
+                                                        <div style="margin-top: 10px;"><b>Note!</b> You need recursion enabled even when you have configured Forwarders in Settings and do not want the DNS Server to do recursive resolution.</div>
                                                     </div>
 
                                                     <div class="well well-sm form-horizontal">
@@ -3246,7 +3247,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                 <div class="form-group" style="display: block;">
                                                     <button type="submit" class="btn btn-primary" id="btnQueryLogs" data-loading-text="Querying..." onclick="queryLogs(); return false;" style="margin-right: 6px;">Query</button>
                                                     <button type="button" class="btn btn-default" data-loading-text="Export" onclick="exportQueryLogsCsv(this);" style="margin-right: 6px;">Export</button>
-                                                    <button type="reset" class="btn btn-default" onclick="resetQueryLogsForm();" style="margin-right: 12px;">Reset</button>
+                                                    <button type="button" class="btn btn-default" onclick="resetQueryLogsForm();" style="margin-right: 12px;">Reset</button>
 
                                                     <div class="checkbox">
                                                         <label>
