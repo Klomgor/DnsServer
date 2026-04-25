@@ -4004,15 +4004,14 @@ namespace DnsServerCore.Dns
             }
             while (++queryCount < MAX_CNAME_HOPS);
 
-            DnsResponseCode rcode;
-            IReadOnlyList<DnsResourceRecord> authority;
-            IReadOnlyList<DnsResourceRecord> additional;
-            List<EDnsOption> options = null;
+            DnsDatagram finalResponse;
 
             if (newResponse is null)
             {
                 //no recursion available
-                rcode = DnsResponseCode.NoError;
+                DnsResponseCode rcode = DnsResponseCode.NoError;
+                IReadOnlyList<DnsResourceRecord> authority;
+                IReadOnlyList<DnsResourceRecord> additional;
 
                 if (newAuthority.Count == 0)
                 {
@@ -4025,9 +4024,16 @@ namespace DnsServerCore.Dns
                 }
 
                 additional = lastResponse.Additional;
+
+                finalResponse = new DnsDatagram(request.Identifier, true, DnsOpcode.StandardQuery, isAuthoritativeAnswer, false, request.RecursionDesired, isRecursionAllowed, false, request.CheckingDisabled, rcode, request.Question, newAnswer, authority, additional) { Tag = response.Tag };
             }
             else
             {
+                DnsResponseCode rcode;
+                IReadOnlyList<DnsResourceRecord> authority;
+                IReadOnlyList<DnsResourceRecord> additional;
+                List<EDnsOption> options = null;
+
                 if (cnameLoopDetectedDomain is not null)
                 {
                     rcode = DnsResponseCode.ServerFailure;
@@ -4055,35 +4061,45 @@ namespace DnsServerCore.Dns
                     authority = newAuthority;
                 }
 
-                if ((newResponse.Additional.Count == 0) || (options is null))
+                if (options is null)
                 {
                     additional = newResponse.Additional;
-                }
-                else if ((newResponse.Additional.Count == 1) && (newResponse.Additional[0].RDATA is DnsOPTRecordData opt))
-                {
-                    options.AddRange(opt.Options);
-                    additional = [];
+
+                    finalResponse = new DnsDatagram(request.Identifier, true, DnsOpcode.StandardQuery, isAuthoritativeAnswer, false, request.RecursionDesired, isRecursionAllowed, false, request.CheckingDisabled, rcode, request.Question, newAnswer, authority, additional) { Tag = response.Tag };
                 }
                 else
                 {
-                    List<DnsResourceRecord> newAdditional = new List<DnsResourceRecord>();
-
-                    foreach (DnsResourceRecord additionalRecord in newResponse.Additional)
+                    if (newResponse.Additional.Count == 0)
                     {
-                        if (additionalRecord.Type == DnsResourceRecordType.OPT)
+                        additional = newResponse.Additional;
+                    }
+                    else if ((newResponse.Additional.Count == 1) && (newResponse.Additional[0].RDATA is DnsOPTRecordData opt))
+                    {
+                        options.AddRange(opt.Options);
+                        additional = [];
+                    }
+                    else
+                    {
+                        List<DnsResourceRecord> newAdditional = new List<DnsResourceRecord>();
+
+                        foreach (DnsResourceRecord additionalRecord in newResponse.Additional)
                         {
-                            options.AddRange((additionalRecord.RDATA as DnsOPTRecordData).Options);
-                            continue;
+                            if (additionalRecord.Type == DnsResourceRecordType.OPT)
+                            {
+                                options.AddRange((additionalRecord.RDATA as DnsOPTRecordData).Options);
+                                continue;
+                            }
+
+                            newAdditional.Add(additionalRecord);
                         }
 
-                        newAdditional.Add(additionalRecord);
+                        additional = newAdditional;
                     }
 
-                    additional = newAdditional;
+                    finalResponse = new DnsDatagram(request.Identifier, true, DnsOpcode.StandardQuery, isAuthoritativeAnswer, false, request.RecursionDesired, isRecursionAllowed, false, request.CheckingDisabled, rcode, request.Question, newAnswer, authority, additional, request.EDNS is null ? ushort.MinValue : _udpPayloadSize, request.DnssecOk ? EDnsHeaderFlags.DNSSEC_OK : EDnsHeaderFlags.None, options) { Tag = response.Tag };
                 }
             }
 
-            DnsDatagram finalResponse = new DnsDatagram(request.Identifier, true, DnsOpcode.StandardQuery, isAuthoritativeAnswer, false, request.RecursionDesired, isRecursionAllowed, false, request.CheckingDisabled, rcode, request.Question, newAnswer, authority, additional, request.EDNS is null ? ushort.MinValue : _udpPayloadSize, request.DnssecOk ? EDnsHeaderFlags.DNSSEC_OK : EDnsHeaderFlags.None, options) { Tag = response.Tag };
             finalResponse.SetMetadata(null, responseRtt);
 
             return finalResponse;
