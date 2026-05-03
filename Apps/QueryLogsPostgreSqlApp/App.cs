@@ -768,7 +768,7 @@ CREATE TABLE IF NOT EXISTS dns_logs
                         command.Parameters.AddWithValue("@qname", qname);
 
                     if (qtype is not null)
-                        command.Parameters.AddWithValue("@qtype", (ushort)qtype);
+                        command.Parameters.AddWithValue("@qtype", (int)qtype);
 
                     if (qclass is not null)
                         command.Parameters.AddWithValue("@qclass", (short)qclass);
@@ -833,7 +833,7 @@ LIMIT @limit OFFSET @offset";
                         command.Parameters.AddWithValue("@qname", qname);
 
                     if (qtype is not null)
-                        command.Parameters.AddWithValue("@qtype", (ushort)qtype);
+                        command.Parameters.AddWithValue("@qtype", (int)qtype);
 
                     if (qclass is not null)
                         command.Parameters.AddWithValue("@qclass", (short)qclass);
